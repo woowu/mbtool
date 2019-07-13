@@ -12,11 +12,14 @@ const commandHandlers = {
     delay: function(msecs, cb) {
         setTimeout(cb, msecs);
     },
-    fc1: function(addr, n, cb) {
-        mbContinueWrite(client.writeFC1.bind(client), addr, n, cb);
+    fc1: function(cb, addr, n) {
+        modbusRead(client.writeFC1.bind(client), cb, addr, n);
     },
-    fc3: function(addr, n, cb) {
-        mbContinueWrite(client.writeFC3.bind(client), addr, n, cb);
+    fc2: function(cb, addr, n) {
+        modbusRead(client.writeFC2.bind(client), cb, addr, n);
+    },
+    fc3: function(cb, addr, n) {
+        modbusRead(client.writeFC3.bind(client), cb, addr, n);
     },
 };
 
@@ -32,33 +35,59 @@ function makeConnection(cb)
         });
 }
 
-function printContinueData(resp, startAddr)
+function printMemoryBlock(data, startAddr)
 {
-    const lineWidth = 16;
-    var valuePad = 4;
-    if (Array.isArray(resp) && typeof resp[0] == 'boolean') {
-        resp = resp.map(b => b ? '1' : '0');
-        valuePad = 1;
-    }
-    var rowNo = 0;
-    while (resp.length > 0) {
-        const row = resp.slice(0, lineWidth).map(
-            val => pad(valuePad, val.toString(16), '0'));
-        resp = resp.slice(lineWidth + 1);
-        console.log(pad(4, (rowNo * lineWidth).toString(16), '0') + ': '
-            + row.join(' '));
-        ++rowNo;
+    const base = 16;
+    const coilsPerGroup = 8;
+    const hexCharsOfWord = 4;
+    const isCoil = typeof data[0] == 'boolean';
+    const valuesPerLine = isCoil ? 64 : 16;
+
+    var offset = parseInt(startAddr / valuesPerLine) * valuesPerLine;
+    const paddingNum = startAddr - offset; 
+    data = Array(paddingNum).fill(0).concat(data);
+
+    data = data.map((d, i) => {
+        if (i < paddingNum)
+            return isCoil ? ' ' : Array(hexCharsOfWord).fill(' ').join('');
+        else
+            return isCoil ? (d ? '1' : '0')
+                : pad(hexCharsOfWord, d.toString(base), '0');
+    });
+
+    while (data.length > 0) {
+        var row = data.slice(0, valuesPerLine);
+        data = data.slice(valuesPerLine);
+        process.stdout.write(pad(hexCharsOfWord, offset.toString(base), '0')
+            + ':');
+        if (isCoil) {
+            row = row.join('');
+            while (row.length) {
+                process.stdout.write(' ' + row.slice(0, coilsPerGroup));
+                row = row.slice(coilsPerGroup);
+            }
+            process.stdout.write('\n');
+        } else
+            process.stdout.write(' ' + row.join(' ') + '\n');
+        offset += valuesPerLine;
     }
 }
 
-function mbContinueWrite(fn, addr, n, cb)
+function modbusRead(fn, cb, addr, n)
 {
+    addr = parseInt(addr);
+    n = parseInt(n);
+    if (typeof addr != 'number' || typeof n != 'number') {
+        console.log('incorrect number of parameters');
+        return cb(null);
+    }
+
     try {
         fn(slaveAddr, addr, n, (err, data) => {
             if (err)
                 console.error(err.message);
             else
-                printContinueData(data.data, addr);
+                printMemoryBlock(data.data.slice(0, n), addr);
             cb(null);
         });
     } catch (err) {
@@ -79,7 +108,7 @@ function processCommands(rl, conn)
             console.error('unrecognized command ' + job.cmd);
             cb(null);
         } else
-            handler(...job.args, cb);
+            handler(cb, ...job.args);
     }
 
     function handleJobQueue()
