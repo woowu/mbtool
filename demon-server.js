@@ -79,18 +79,45 @@ function initDeviceMemory()
         deviceMemory.holdingRegisters.push(parseInt(Math.random() * nRegValues));
 }
 
+function startTcp(port, devAddr, cb)
+{
+    const serverTCP = new ModbusRTU.ServerTCP(vector, {
+        host: '0.0.0.0',
+        port: port,
+        debug: true,
+        unitID: devAddr,
+    });
+    var initialized = false;
+
+    serverTCP.on('initialized', function() {
+        console.log('device ' + devAddr + ' listening on port ' + port);
+        initialized = true;
+        cb(null);
+    });
+    serverTCP.on('socketError', function(err) {
+        console.log(err.message);
+        if (! initialized) serverTCP.close();
+    });
+}
+
+var argv = require('yargs')
+    .option('port', {
+        describe: 'tcp port number of server',
+        nargs: 1,
+        default: 502,
+        alias: 'p',
+    })
+    .option('dev-addr', {
+        describe: 'modbus slave device address',
+        nargs: 1,
+        alias: 'u',
+        demandOption: true,
+    })
+    .argv;
+
 initDeviceMemory();
 
-console.log("ModbusTCP listening on modbus://0.0.0.0:502");
-const serverTCP = new ModbusRTU.ServerTCP(vector, { host: "0.0.0.0", port: 502, debug: true, unitID: 1 });
-
-serverTCP.on("initialized", function() {
-    console.log("initialized");
+startTcp(argv.port, argv.u, err => {
+    if (err) return console.error(err);
 });
 
-serverTCP.on("socketError", function(err) {
-    console.error(err);
-    serverTCP.close(() => {
-        console.log("server closed");
-    });
-});

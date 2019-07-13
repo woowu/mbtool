@@ -207,7 +207,7 @@ function makeConnection(cb)
         });
     } else {
         client.setTimeout(1000);
-        client.connectRTUBuffered(argv.dev, { baudrate: argv.baud }, (err) => {;
+        client.connectRTUBuffered(argv.dev, { baudRate: argv.baudrate }, (err) => {;
             cb(err, client, argv.dev + '@' + argv.baud);
         });
     }
@@ -289,6 +289,13 @@ function processCommands(rl, conn)
 
     function handleJob(job, cb)
     {
+        if (job.cmd == 'EOF')
+            return conn.close(cb);
+        else if (job.cmd == 'echo') {
+            console.log(...job.args);
+            return cb(null);
+        }
+
         const handler = commandVector[job.cmd];
         if (! handler) {
             console.error('unrecognized command ' + job.cmd);
@@ -328,7 +335,7 @@ function processCommands(rl, conn)
             handleJobQueue();
     });
     rl.on('close', () => {
-        conn.close();
+        jobQueue.push({cmd: 'EOF'})
     });
 }
 
@@ -336,6 +343,7 @@ var argv = require('yargs')
     .option('server', {
         describe: 'server IP address',
         nargs: 1,
+        default: 'localhost',
         alias: 's',
     })
     .option('port', {
@@ -349,14 +357,14 @@ var argv = require('yargs')
         nargs: 1,
         alias: 'd',
     })
-    .option('baud', {
+    .option('baudrate', {
         describe: 'serial baudrate',
         nargs: 1,
-        default: 115200,
+        default: 9600,
         alias: 'b',
     })
-    .option('slave-addr', {
-        describe: 'modbus slave address',
+    .option('dev-addr', {
+        describe: 'modbus slave device address to connect',
         nargs: 1,
         alias: 'u',
         demandOption: true,
@@ -368,15 +376,6 @@ var argv = require('yargs')
     })
     .argv;
 
-if (! argv.server && ! argv.dev) {
-    console.error('need to select tcp or serial');
-    process.exit(1);
-}
-if (argv.server && argv.dev) {
-    console.error('can only specify either tcp or serial mode');
-    process.exit(1);
-}
-
 slaveAddr = argv.u;
 
 makeConnection((err, conn, connStr) => {
@@ -384,11 +383,11 @@ makeConnection((err, conn, connStr) => {
     console.log('connected to ' + connStr);
 
     var rl;
-    if (argv.f)
+    if (argv.f) {
         rl = readline.createInterface({
             input: fs.createReadStream(argv.f),
         });
-    else if (process.stdin.isTTY)
+    } else if (process.stdin.isTTY)
         rl = readline.createInterface({
             input: process.stdin,
             output: process.stdout,
