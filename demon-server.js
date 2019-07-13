@@ -3,6 +3,7 @@ const ModbusRTU = require("modbus-serial");
 
 const vector = {
     getInputRegister: function(addr) { return addr; },
+    getDiscreteInput: function(addr) { return (addr % 2) === 0; },
     getHoldingRegister: function(addr) { return addr + 123; },
     getMultipleInputRegisters: function(startAddr, length) {
         var values = [];

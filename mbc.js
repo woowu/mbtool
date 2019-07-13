@@ -10,29 +10,207 @@ var slaveAddr;
 
 const commandHandlers = {
     delay: function(msecs, cb) {
-        setTimeout(cb, msecs);
+        msecs = parseInt(msecs);
+        if (typeof msecs != 'number' || msecs < 0) {
+            console.error('bad delay time');
+            cb(null);
+        } else
+            setTimeout(cb, msecs);
     },
     fc1: function(cb, addr, n) {
-        modbusRead(client.writeFC1.bind(client), cb, addr, n);
+        const parameters = cmdConvertAddrAndCount(addr, n);
+        if (parameters instanceof Error) {
+            console.error(parameters.message);
+            cb(null);
+        } else
+            modbusRead(client.writeFC1.bind(client), cb, ...parameters);
     },
     fc2: function(cb, addr, n) {
-        modbusRead(client.writeFC2.bind(client), cb, addr, n);
+        const parameters = cmdConvertAddrAndCount(addr, n);
+        if (parameters instanceof Error) {
+            console.error(parameters.message);
+            cb(null);
+        } else
+            modbusRead(client.writeFC2.bind(client), cb, ...parameters);
     },
     fc3: function(cb, addr, n) {
-        modbusRead(client.writeFC3.bind(client), cb, addr, n);
+        const parameters = cmdConvertAddrAndCount(addr, n);
+        if (parameters instanceof Error) {
+            console.error(parameters.message);
+            cb(null);
+        } else
+            modbusRead(client.writeFC3.bind(client), cb, ...parameters);
+    },
+    fc4: function(cb, addr, n) {
+        const parameters = cmdConvertAddrAndCount(addr, n);
+        if (parameters instanceof Error) {
+            console.error(parameters.message);
+            cb(null);
+        } else
+            modbusRead(client.writeFC4.bind(client), cb, ...parameters);
+    },
+    fc5: function(cb, addr, value) {
+        const parameters = cmdConvertAddrAndBool(addr, value);
+        if (parameters instanceof Error) {
+            console.error(parameters.message);
+            cb(null);
+        } else
+            modbusWrite(client.writeFC5.bind(client), cb, ...parameters);
+    },
+    fc6: function(cb, addr, value) {
+        const parameters = cmdConvertAddrAndRegValue(addr, value);
+        if (parameters instanceof Error) {
+            console.error(parameters.message);
+            cb(null);
+        } else
+            modbusWrite(client.writeFC6.bind(client), cb, ...parameters);
+    },
+    fc15: function(cb, addr, ...values) {
+        const parameters = cmdConvertAddrAndBoolValues(addr, values);
+        if (parameters instanceof Error) {
+            console.error(parameters.message);
+            cb(null);
+        } else
+            modbusWrite(client.writeFC16.bind(client), cb, ...parameters);
+    },
+    fc16: function(cb, addr, ...values) {
+        const parameters = cmdConvertAddrAndRegValues(addr, values);
+        if (parameters instanceof Error) {
+            console.error(parameters.message);
+            cb(null);
+        } else
+            modbusWrite(client.writeFC16.bind(client), cb, ...parameters);
     },
 };
 
+/* --- Parameters converting and checking --- */
+
+function cmdConvertAddr(addr)
+{
+    addr = parseInt(addr);
+    return typeof addr == 'number' && addr >= 0 ? addr : Error('bad address');
+}
+
+function cmdConvertBool(value)
+{
+    value = value.toLowerCase();
+    if (value == 'true' || value == '1')
+        value = true;
+    else if (value == 'false' || value == '0')
+        value = false;
+    else
+        return new Error('bad boolean value');
+    return value;
+}
+
+function cmdConvertRegValue(value)
+{
+    value = parseInt(value);
+    return typeof value == 'number' && value >= 0 && value <= 65535 ? value
+        : Error('bad register value');
+}
+
+function cmdConvertRegValues(values)
+{
+    var error = false;
+
+    if (! Array.isArray(values))
+        return new Error('incorrect register values');
+    values = values.map(v => {
+        v = parseInt(v);
+        if (typeof v != 'number') error = true;
+        return v;
+    });
+    if (error) return new Error('incorrect register value');
+    return values;
+}
+
+function cmdConvertBoolValues(values)
+{
+    var error = false;
+
+    if (! Array.isArray(values))
+        return new Error('incorrect bool values');
+    values = values.map(v => {
+        v = cmdConvertBool(v);
+        if (v instanceof Error) error = true;
+        return v;
+    });
+    if (error) return new Error('incorrect bool value');
+    return values;
+}
+
+function cmdConvertCount(n)
+{
+    n = parseInt(n);
+    return typeof n == 'number' && n > 0 ? n : Error('bad count value');
+}
+
+function cmdConvertAddrAndBool(addr, value)
+{
+    addr = cmdConvertAddr(addr);
+    if (addr instanceof Error) return addr;
+
+    value = cmdConvertBool(value);
+    if (value instanceof Error) return value;
+    return [addr, value];
+}
+
+function cmdConvertAddrAndRegValue(addr, value)
+{
+    addr = cmdConvertAddr(addr);
+    if (addr instanceof Error) return addr;
+
+    value = cmdConvertRegValue(value);
+    if (value instanceof Error) return value;
+    return [addr, value];
+}
+
+function cmdConvertAddrAndRegValues(addr, values)
+{
+    addr = cmdConvertAddr(addr);
+    if (addr instanceof Error) return addr;
+
+    values = cmdConvertRegValues(values);
+    if (values instanceof Error) return values;
+    return [addr, values];
+}
+
+function cmdConvertAddrAndBoolValues(addr, values)
+{
+    addr = cmdConvertAddr(addr);
+    if (addr instanceof Error) return addr;
+
+    values = cmdConvertBoolValues(values);
+    if (values instanceof Error) return values;
+    return [addr, values];
+}
+
+function cmdConvertAddrAndCount(addr, n)
+{
+    addr = cmdConvertAddr(addr);
+    if (addr instanceof Error) return addr;
+
+    n = cmdConvertCount(n);
+    if (n instanceof Error) return n;
+    return [addr, n];
+}
+
+/* -------------------------------------------------------------------------- */
+
 function makeConnection(cb)
 {
-    if (argv.server)
+    if (argv.server) {
+        client.setTimeout(3000);
         client.connectTCP(argv.server, { port: argv.port }, (err) => {
             cb(err, client, argv.server + ':' + argv.port);
         });
-    else
-        client.connectRTUBuffered(argv.dev, { baudRate: argv.baud }, (err) => {;
+    } else {
+        client.setTimeout(1000);
+        client.connectRTUBuffered(argv.dev, { baudrate: argv.baud }, (err) => {;
             cb(err, client, argv.dev + '@' + argv.baud);
         });
+    }
 }
 
 function printMemoryBlock(data, startAddr)
@@ -75,19 +253,27 @@ function printMemoryBlock(data, startAddr)
 
 function modbusRead(fn, cb, addr, n)
 {
-    addr = parseInt(addr);
-    n = parseInt(n);
-    if (typeof addr != 'number' || typeof n != 'number') {
-        console.log('incorrect number of parameters');
-        return cb(null);
-    }
-
     try {
         fn(slaveAddr, addr, n, (err, data) => {
             if (err)
                 console.error(err.message);
             else
                 printMemoryBlock(data.data.slice(0, n), addr);
+            cb(null);
+        });
+    } catch (err) {
+        /* it does not use cb to pass error :( */
+        console.error(err);
+        cb(null);
+    }
+}
+
+function modbusWrite(fn, cb, addr, value)
+{
+    try {
+        fn(slaveAddr, addr, value, (err) => {
+            if (err)
+                console.error(err.message);
             cb(null);
         });
     } catch (err) {
