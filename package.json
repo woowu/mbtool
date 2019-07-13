@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "extend": "^3.0.2",
     "modbus-serial": "^7.6.0",
     "pad": "^3.2.0",
     "yargs": "^13.2.4"
