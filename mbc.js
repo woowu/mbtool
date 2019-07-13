@@ -8,7 +8,7 @@ const client = new ModbusRTU();
 
 var slaveAddr;
 
-const commandHandlers = {
+const commandVector = {
     delay: function(msecs, cb) {
         msecs = parseInt(msecs);
         if (typeof msecs != 'number' || msecs < 0) {
@@ -289,7 +289,7 @@ function processCommands(rl, conn)
 
     function handleJob(job, cb)
     {
-        const handler = commandHandlers[job.cmd];
+        const handler = commandVector[job.cmd];
         if (! handler) {
             console.error('unrecognized command ' + job.cmd);
             cb(null);
