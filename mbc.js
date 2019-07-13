@@ -4,7 +4,10 @@ const fs = require('fs');
 const readline = require('readline');
 const pad = require('pad');
 const ModbusRTU = require("modbus-serial");
+
+const ctrl_d = 4;
 const client = new ModbusRTU();
+const jobQueue = [];
 
 var slaveAddr;
 
@@ -83,7 +86,111 @@ const commandVector = {
     },
 };
 
-/* --- Parameters converting and checking --- */
+function makeConnection(cb)
+{
+    client.setTimeout(3000);
+    if (argv.dev)
+        client.connectRTUBuffered(argv.dev, { baudRate: argv.baudrate }, err => {;
+            cb(err, client, argv.dev + '@' + argv.baudrate);
+        });
+    else
+        client.connectTCP(argv.server, { port: argv.port }, err => {
+            cb(err, client, argv.server + ':' + argv.port);
+        });
+}
+
+function processCommands(rl, conn)
+{
+    function handleJob(job, cb)
+    {
+        if (job.cmd == '_eof') {
+            conn.close(cb);
+            return cb(null, true);
+        } else if (job.cmd == 'echo') {
+            console.log(...job.args);
+            return cb(null);
+        }
+
+        const handler = commandVector[job.cmd];
+        if (! handler) {
+            console.error('unrecognized command ' + job.cmd);
+            cb(null);
+        } else
+            handler(cb, ...job.args);
+    }
+
+    function handleJobQueue()
+    {
+        if (! jobQueue.length) return;
+        handleJob(jobQueue[0], (err, stop) => {
+            if (err) {
+                console.log(err.message);
+                conn.close();
+                process.exit(2);
+            } else {
+                jobQueue.shift();
+                if (rl.terminal) rl.prompt();
+                if (! stop) handleJobQueue();
+            }
+        });
+    }
+
+    if (rl.terminal) rl.prompt();
+    rl.on('line', line => {
+        line = line.replace(/#.*$/, '').trim();
+        if (! line.length) return;
+        const tokens = line.split(/\s+/);
+        const cmd = tokens[0];
+        const args = tokens.slice(1);
+        jobQueue.push({
+            cmd: tokens[0],
+            args: tokens.slice(1),
+        });
+        if (jobQueue.length == 1)
+            handleJobQueue();
+    });
+    rl.on('close', () => {
+        jobQueue.push({cmd: '_eof'})
+    });
+}
+
+function printMemoryBlock(data, startAddr)
+{
+    const base = 16;
+    const coilsPerGroup = 8;
+    const hexCharsOfWord = 4;
+    const isCoil = typeof data[0] == 'boolean';
+    const valuesPerLine = isCoil ? 64 : 16;
+
+    var offset = parseInt(startAddr / valuesPerLine) * valuesPerLine;
+    const paddingNum = startAddr - offset; 
+    data = Array(paddingNum).fill(0).concat(data);
+
+    data = data.map((d, i) => {
+        if (i < paddingNum)
+            return isCoil ? ' ' : Array(hexCharsOfWord).fill(' ').join('');
+        else
+            return isCoil ? (d ? '1' : '0')
+                : pad(hexCharsOfWord, d.toString(base), '0');
+    });
+
+    while (data.length > 0) {
+        var row = data.slice(0, valuesPerLine);
+        data = data.slice(valuesPerLine);
+        process.stdout.write(pad(hexCharsOfWord, offset.toString(base), '0')
+            + ':');
+        if (isCoil) {
+            row = row.join('');
+            while (row.length) {
+                process.stdout.write(' ' + row.slice(0, coilsPerGroup));
+                row = row.slice(coilsPerGroup);
+            }
+            process.stdout.write('\n');
+        } else
+            process.stdout.write(' ' + row.join(' ') + '\n');
+        offset += valuesPerLine;
+    }
+}
 
 function cmdConvertAddr(addr)
 {
@@ -93,7 +200,6 @@ function cmdConvertAddr(addr)
 
 function cmdConvertBool(value)
 {
-    value = value.toLowerCase();
     if (value == 'true' || value == '1')
         value = true;
     else if (value == 'false' || value == '0')
@@ -196,61 +302,6 @@ function cmdConvertAddrAndCount(addr, n)
     return [addr, n];
 }
 
-/* -------------------------------------------------------------------------- */
-
-function makeConnection(cb)
-{
-    if (argv.server) {
-        client.setTimeout(3000);
-        client.connectTCP(argv.server, { port: argv.port }, (err) => {
-            cb(err, client, argv.server + ':' + argv.port);
-        });
-    } else {
-        client.setTimeout(1000);
-        client.connectRTUBuffered(argv.dev, { baudRate: argv.baudrate }, (err) => {;
-            cb(err, client, argv.dev + '@' + argv.baud);
-        });
-    }
-}
-
-function printMemoryBlock(data, startAddr)
-{
-    const base = 16;
-    const coilsPerGroup = 8;
-    const hexCharsOfWord = 4;
-    const isCoil = typeof data[0] == 'boolean';
-    const valuesPerLine = isCoil ? 64 : 16;
-
-    var offset = parseInt(startAddr / valuesPerLine) * valuesPerLine;
-    const paddingNum = startAddr - offset; 
-    data = Array(paddingNum).fill(0).concat(data);
-
-    data = data.map((d, i) => {
-        if (i < paddingNum)
-            return isCoil ? ' ' : Array(hexCharsOfWord).fill(' ').join('');
-        else
-            return isCoil ? (d ? '1' : '0')
-                : pad(hexCharsOfWord, d.toString(base), '0');
-    });
-
-    while (data.length > 0) {
-        var row = data.slice(0, valuesPerLine);
-        data = data.slice(valuesPerLine);
-        process.stdout.write(pad(hexCharsOfWord, offset.toString(base), '0')
-            + ':');
-        if (isCoil) {
-            row = row.join('');
-            while (row.length) {
-                process.stdout.write(' ' + row.slice(0, coilsPerGroup));
-                row = row.slice(coilsPerGroup);
-            }
-            process.stdout.write('\n');
-        } else
-            process.stdout.write(' ' + row.join(' ') + '\n');
-        offset += valuesPerLine;
-    }
-}
-
 function modbusRead(fn, cb, addr, n)
 {
     try {
@@ -281,62 +332,6 @@ function modbusWrite(fn, cb, addr, value)
         console.error(err);
         cb(null);
     }
-}
-
-function processCommands(rl, conn)
-{
-    const jobQueue = [];
-
-    function handleJob(job, cb)
-    {
-        if (job.cmd == 'EOF')
-            return conn.close(cb);
-        else if (job.cmd == 'echo') {
-            console.log(...job.args);
-            return cb(null);
-        }
-
-        const handler = commandVector[job.cmd];
-        if (! handler) {
-            console.error('unrecognized command ' + job.cmd);
-            cb(null);
-        } else
-            handler(cb, ...job.args);
-    }
-
-    function handleJobQueue()
-    {
-        if (! jobQueue.length) return;
-        handleJob(jobQueue[0], (err) => {
-            if (err) {
-                console.log(err.message);
-                conn.close();
-                process.exit(2);
-            } else {
-                jobQueue.shift();
-                if (rl.terminal) rl.prompt();
-                handleJobQueue();
-            }
-        });
-    }
-
-    if (rl.terminal) rl.prompt();
-    rl.on('line', line => {
-        line = line.replace(/#.*$/, '').trim();
-        if (! line.length) return;
-        const tokens = line.split(/\s+/);
-        const cmd = tokens[0];
-        const args = tokens.slice(1);
-        jobQueue.push({
-            cmd: tokens[0],
-            args: tokens.slice(1),
-        });
-        if (jobQueue.length == 1)
-            handleJobQueue();
-    });
-    rl.on('close', () => {
-        jobQueue.push({cmd: 'EOF'})
-    });
 }
 
 var argv = require('yargs')
@@ -387,13 +382,17 @@ makeConnection((err, conn, connStr) => {
         rl = readline.createInterface({
             input: fs.createReadStream(argv.f),
         });
-    } else if (process.stdin.isTTY)
+    } else if (process.stdin.isTTY) {
         rl = readline.createInterface({
             input: process.stdin,
             output: process.stdout,
             prompt: '> ',
         });
-    else
+        process.stdin.on('data', data => {
+            if (data.length == 1 && data[0] == ctrl_d)
+                conn.close();
+        });
+    } else
         rl = readline.createInterface({
             input: process.stdin,
             terminal: false,
