@@ -1,4 +1,6 @@
 'use strict';
+const events = require('events');
+const extend = require('extend');
 const pad = require('pad');
 
 function cmdConvertAddr(addr)
@@ -113,6 +115,7 @@ function cmdConvertAddrAndCount(addr, n)
 
 function commJob(conn)
 {
+    const ee = new events.EventEmitter();
     const jobQueue = [];
     var stopped = false;
 
@@ -139,7 +142,7 @@ function commJob(conn)
                 ui.error(parameters.message);
                 cb(null);
             } else
-                modbusRead(conn.writeFC1.bind(conn), cb, ...parameters);
+                modbusRead(conn.writeFC1.bind(conn), ui, cb, ...parameters);
         },
         fc2: function(ui, cb, addr, n) {
             const parameters = cmdConvertAddrAndCount(addr, n);
@@ -147,7 +150,7 @@ function commJob(conn)
                 ui.error(parameters.message);
                 cb(null);
             } else
-                modbusRead(conn.writeFC2.bind(conn), cb, ...parameters);
+                modbusRead(conn.writeFC2.bind(conn), ui, cb, ...parameters);
         },
         fc3: function(ui, cb, addr, n) {
             const parameters = cmdConvertAddrAndCount(addr, n);
@@ -155,7 +158,7 @@ function commJob(conn)
                 ui.error(parameters.message);
                 cb(null);
             } else
-                modbusRead(conn.writeFC3.bind(conn), cb, ...parameters);
+                modbusRead(conn.writeFC3.bind(conn), ui, cb, ...parameters);
         },
         fc4: function(ui, cb, addr, n) {
             const parameters = cmdConvertAddrAndCount(addr, n);
@@ -163,7 +166,7 @@ function commJob(conn)
                 ui.error(parameters.message);
                 cb(null);
             } else
-                modbusRead(conn.writeFC4.bind(conn), cb, ...parameters);
+                modbusRead(conn.writeFC4.bind(conn), ui, cb, ...parameters);
         },
         fc5: function(ui, cb, addr, value) {
             const parameters = cmdConvertAddrAndBool(addr, value);
@@ -171,7 +174,7 @@ function commJob(conn)
                 ui.error(parameters.message);
                 cb(null);
             } else
-                modbusWrite(conn.writeFC5.bind(conn), cb, ...parameters);
+                modbusWrite(conn.writeFC5.bind(conn), ui, cb, ...parameters);
         },
         fc6: function(ui, cb, addr, value) {
             const parameters = cmdConvertAddrAndRegValue(addr, value);
@@ -179,7 +182,7 @@ function commJob(conn)
                 ui.error(parameters.message);
                 cb(null);
             } else
-                modbusWrite(conn.writeFC6.bind(conn), cb, ...parameters);
+                modbusWrite(conn.writeFC6.bind(conn), ui, cb, ...parameters);
         },
         fc15: function(ui, cb, addr, ...values) {
             const parameters = cmdConvertAddrAndBoolValues(addr, values);
@@ -187,7 +190,7 @@ function commJob(conn)
                 ui.error(parameters.message);
                 cb(null);
             } else
-                modbusWrite(conn.writeFC16.bind(conn), cb, ...parameters);
+                modbusWrite(conn.writeFC16.bind(conn), ui, cb, ...parameters);
         },
         fc16: function(ui, cb, addr, ...values) {
             const parameters = cmdConvertAddrAndRegValues(addr, values);
@@ -195,11 +198,11 @@ function commJob(conn)
                 ui.error(parameters.message);
                 cb(null);
             } else
-                modbusWrite(conn.writeFC16.bind(conn), cb, ...parameters);
+                modbusWrite(conn.writeFC16.bind(conn), ui, cb, ...parameters);
         },
     };
 
-    function printMemoryBlock(data, startAddr)
+    function printMemoryBlock(ui, data, startAddr)
     {
         const base = 16;
         const coilsPerGroup = 8;
@@ -221,50 +224,50 @@ function commJob(conn)
 
         while (data.length > 0) {
             var row = data.slice(0, valuesPerLine);
+            var line = '';
             data = data.slice(valuesPerLine);
-            process.stdout.write(pad(hexCharsOfWord, offset.toString(base), '0')
-                + ':');
+            line += pad(hexCharsOfWord, offset.toString(base), '0') + ':';
             if (isCoil) {
                 row = row.join('');
                 while (row.length) {
-                    process.stdout.write(' ' + row.slice(0, coilsPerGroup));
+                    line += ' ' + row.slice(0, coilsPerGroup);
                     row = row.slice(coilsPerGroup);
                 }
-                process.stdout.write('\n');
+                ui.response(line);
             } else
-                process.stdout.write(' ' + row.join(' ') + '\n');
+                ui.response(' ' + line + row.join(' '));
             offset += valuesPerLine;
         }
     }
 
-    function modbusRead(fn, cb, addr, n)
+    function modbusRead(fn, ui, cb, addr, n)
     {
         try {
             fn(conn.slaveAddr, addr, n, (err, data) => {
                 if (err)
-                    console.error(err.message);
+                    ui.error(err.message);
                 else
-                    printMemoryBlock(data.data.slice(0, n), addr);
+                    printMemoryBlock(ui, data.data.slice(0, n), addr);
                 cb(null);
             });
         } catch (err) {
             /* it does not use cb to pass error :( */
-            console.error(err);
+            ui.error(err);
             cb(null);
         }
     }
 
-    function modbusWrite(fn, cb, addr, value)
+    function modbusWrite(fn, ui, cb, addr, value)
     {
         try {
             fn(conn.slaveAddr, addr, value, (err) => {
                 if (err)
-                    console.error(err.message);
+                    ui.error(err.message);
                 cb(null);
             });
         } catch (err) {
             /* it does not use cb to pass error :( */
-            console.error(err);
+            ui.error(err);
             cb(null);
         }
     }
@@ -302,13 +305,13 @@ function commJob(conn)
         });
     }
 
-    return {
+    return extend(ee, {
         pushCmd: function(ui, cmd, args) {
             if (stopped) return;
             jobQueue.push({ui, cmd, args});
             if (jobQueue.length == 1) handleJobQueue();
         },
-    };
+    });
 }
 
 module.exports = commJob;

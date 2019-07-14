@@ -1,6 +1,5 @@
 'use strict';
 const fs = require('fs');
-const util = require('util');
 const extend = require('extend');
 const events = require('events');
 const readline = require('readline');
@@ -8,11 +7,11 @@ const commjob = require('./commjob');
 
 const ctrl_d = 4;
 
-function localUI(inputFile)
+function localui(inputFile)
 {
     const ee = new events.EventEmitter();
     var rl;
-    var that;
+    var ui;
 
     function run()
     {
@@ -45,7 +44,7 @@ function localUI(inputFile)
             terminal: false,
         });
 
-    that = extend(ee, {
+    ui = extend(ee, {
         info: function(message) {
             console.log(message);
         },
@@ -55,10 +54,15 @@ function localUI(inputFile)
         prompt: function() {
             if (process.stdin.isTTY) rl.prompt();
         },
+        response: function(line) {
+            console.log(line);
+        }, 
+        printFrame: function(frame) {
+        },
     });
 
     run();
-    return that;
+    return ui;
 }
 
-module.exports = localUI;
+module.exports = localui;

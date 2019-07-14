@@ -107,8 +107,8 @@ var argv = require('yargs')
         default: 502,
         alias: 'p',
     })
-    .option('dev-addr', {
-        describe: 'modbus slave device address',
+    .option('unit-id', {
+        describe: 'modbus server address (a.k.a, unit id)',
         nargs: 1,
         alias: 'u',
         demandOption: true,
