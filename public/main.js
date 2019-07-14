@@ -10,6 +10,7 @@ $(function() {
     });
 
     socket.on('log', log => {
-        logwin.append('<p class="logline">' + log.timestamp + ' ' + log.message + '</p>')
+        logwin.append('<p class="logline">' + log.timestamp + ' '
+            + log.message + '</p>')
     });
 });

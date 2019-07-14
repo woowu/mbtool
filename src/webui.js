@@ -5,12 +5,15 @@ const express = require('express');
 const socketio = require('socket.io');
 require('ejs');
 
+const logHistSize = 10000;
+
 function webui()
 {
     const ee = new events.EventEmitter();
     var app = express();
     var ui;
     var io;
+    const logHist = [];
 
     function run()
     {
@@ -23,6 +26,9 @@ function webui()
         const server = app.listen(3000);
         io = socketio(server);
         io.on('connection', socket => {
+            logHist.forEach(log => {
+                socket.emit('log', log);
+            });
             socket.on('command', cmd => {
                 /* TODO */
                 ;
@@ -38,6 +44,8 @@ function webui()
         prompt: function() {
         },
         sendLog: function(log) {
+            if (logHist.length == logHistSize) logHist.unshift();
+            logHist.push(log);
             io.sockets.emit('log', log);
         },
     });

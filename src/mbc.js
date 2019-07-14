@@ -15,7 +15,7 @@ const webui = require('./webui');
 const commjob = require('./commjob');
 
 const client = new ModbusRTU();
-var web;
+const web = webui();
 
 function makeConnection(cb)
 {
@@ -66,7 +66,6 @@ function formatLogObject(o)
 
 function log(...args)
 {
-    if (! web) return;
     const samplePrefix = '2019-07-14T08:49:22.123Z modbus-serial ';
     const timestamp = new Date(args[0].split(/\s+/)[0]);
     const message = args[0].slice(samplePrefix.length);
@@ -112,8 +111,6 @@ var argv = require('yargs')
 
 makeConnection((err, conn, connStr) => {
     if (err) return console.error(err.message);
-
-    web = webui();
 
     conn.slaveAddr = argv.u;
     console.log('connected to ' + connStr);
