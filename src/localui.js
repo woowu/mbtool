@@ -7,15 +7,21 @@ const commjob = require('./commjob');
 
 const ctrl_d = 4;
 
-function localui(inputFile)
+function localui(options, jobQueue)
 {
     const ee = new events.EventEmitter();
     var rl;
     var ui;
+    var started = false;
+    var closed = false;
 
-    function run()
+    function start()
     {
+        started = true;
         if (rl.terminal) rl.prompt();
+        jobQueue.on('after-job', () => {
+            rl.prompt();
+        });
         rl.on('line', line => {
             line = line.replace(/#.*$/, '').trim();
             if (! line.length) return;
@@ -25,15 +31,12 @@ function localui(inputFile)
             ee.emit('command', cmd, args);
         });
         rl.on('close', () => {
-            ee.emit('command', '_eof');
+            ee.emit('command', 'exit');
+            closed = true;
         });
     }
 
-    if (inputFile)
-        rl = readline.createInterface({
-            input: fs.createReadStream(inputFile),
-        });
-    else if (process.stdin.isTTY) {
+    if (process.stdin.isTTY) {
         rl = readline.createInterface({
             input: process.stdin,
             output: process.stdout,
@@ -45,23 +48,23 @@ function localui(inputFile)
         });
 
     ui = extend(ee, {
-        info: function(message) {
-            console.log(message);
-        },
-        error: function(error) {
-            console.error(error);
-        },
-        prompt: function() {
-            if (process.stdin.isTTY) rl.prompt();
-        },
-        response: function(line) {
-            console.log(line);
-        }, 
-        printFrame: function(frame) {
+        start,
+        close: function() {
+            if (! closed) rl.close();
         },
     });
 
-    run();
+    jobQueue.on('info', message => {
+        console.log(message);
+    });
+    jobQueue.on('error', message => {
+        console.error(message);
+    });
+    jobQueue.on('response', data => {
+        console.info(data);
+    });
+
+    if (! options.noAutoStart) start();
     return ui;
 }
 

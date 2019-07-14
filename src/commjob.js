@@ -118,91 +118,91 @@ function commJob(conn)
     const ee = new events.EventEmitter();
     const jobQueue = [];
     var stopped = false;
+    var queueTimer;
 
     const commandVector = {
-        _eof: function _eof(ui, cb) {
-            conn.close(cb);
+        exit: function _eof(cb) {
             return cb(null, true);
         },
-        echo: function(ui, cb, ...args) {
-            if (args) ui.info(args.join(' '));
+        echo: function(cb, ...args) {
+            if (args) ee.emit('info', args.join(' '));
             return cb(null);
         },
-        delay: function(ui, cb, msecs) {
+        delay: function(cb, msecs) {
             msecs = parseInt(msecs);
             if (typeof msecs != 'number' || msecs < 0) {
-                ui.error('bad delay time');
+                ee.emit('error', 'bad delay time');
                 cb(null);
             } else
                 setTimeout(cb, msecs);
         },
-        fc1: function(ui, cb, addr, n) {
+        fc1: function(cb, addr, n) {
             const parameters = cmdConvertAddrAndCount(addr, n);
             if (parameters instanceof Error) {
-                ui.error(parameters.message);
+                ee.emit('error', parameters.message);
                 cb(null);
             } else
-                modbusRead(conn.writeFC1.bind(conn), ui, cb, ...parameters);
+                modbusRead(conn.writeFC1.bind(conn), cb, ...parameters);
         },
-        fc2: function(ui, cb, addr, n) {
+        fc2: function(cb, addr, n) {
             const parameters = cmdConvertAddrAndCount(addr, n);
             if (parameters instanceof Error) {
-                ui.error(parameters.message);
+                ee.emit('error', parameters.message);
                 cb(null);
             } else
-                modbusRead(conn.writeFC2.bind(conn), ui, cb, ...parameters);
+                modbusRead(conn.writeFC2.bind(conn), cb, ...parameters);
         },
-        fc3: function(ui, cb, addr, n) {
+        fc3: function(cb, addr, n) {
             const parameters = cmdConvertAddrAndCount(addr, n);
             if (parameters instanceof Error) {
-                ui.error(parameters.message);
+                ee.emit('error', parameters.message);
                 cb(null);
             } else
-                modbusRead(conn.writeFC3.bind(conn), ui, cb, ...parameters);
+                modbusRead(conn.writeFC3.bind(conn), cb, ...parameters);
         },
-        fc4: function(ui, cb, addr, n) {
+        fc4: function(cb, addr, n) {
             const parameters = cmdConvertAddrAndCount(addr, n);
             if (parameters instanceof Error) {
-                ui.error(parameters.message);
+                ee.emit('error', parameters.message);
                 cb(null);
             } else
-                modbusRead(conn.writeFC4.bind(conn), ui, cb, ...parameters);
+                modbusRead(conn.writeFC4.bind(conn), cb, ...parameters);
         },
-        fc5: function(ui, cb, addr, value) {
+        fc5: function(cb, addr, value) {
             const parameters = cmdConvertAddrAndBool(addr, value);
             if (parameters instanceof Error) {
-                ui.error(parameters.message);
+                ee.emit('error', parameters.message);
                 cb(null);
             } else
-                modbusWrite(conn.writeFC5.bind(conn), ui, cb, ...parameters);
+                modbusWrite(conn.writeFC5.bind(conn), cb, ...parameters);
         },
-        fc6: function(ui, cb, addr, value) {
+        fc6: function(cb, addr, value) {
             const parameters = cmdConvertAddrAndRegValue(addr, value);
             if (parameters instanceof Error) {
-                ui.error(parameters.message);
+                ee.emit('error', parameters.message);
                 cb(null);
             } else
-                modbusWrite(conn.writeFC6.bind(conn), ui, cb, ...parameters);
+                modbusWrite(conn.writeFC6.bind(conn), cb, ...parameters);
         },
-        fc15: function(ui, cb, addr, ...values) {
+        fc15: function(cb, addr, ...values) {
             const parameters = cmdConvertAddrAndBoolValues(addr, values);
             if (parameters instanceof Error) {
-                ui.error(parameters.message);
+                ee.emit('error', parameters.message);
                 cb(null);
             } else
-                modbusWrite(conn.writeFC16.bind(conn), ui, cb, ...parameters);
+                modbusWrite(conn.writeFC16.bind(conn), cb, ...parameters);
         },
-        fc16: function(ui, cb, addr, ...values) {
+        fc16: function(cb, addr, ...values) {
             const parameters = cmdConvertAddrAndRegValues(addr, values);
             if (parameters instanceof Error) {
-                ui.error(parameters.message);
+                ee.emit('error', parameters.message);
                 cb(null);
             } else
-                modbusWrite(conn.writeFC16.bind(conn), ui, cb, ...parameters);
+                modbusWrite(conn.writeFC16.bind(conn), cb, ...parameters);
         },
     };
 
-    function printMemoryBlock(ui, data, startAddr)
+    function printMemoryBlock(data, startAddr)
     {
         const base = 16;
         const coilsPerGroup = 8;
@@ -233,41 +233,41 @@ function commJob(conn)
                     line += ' ' + row.slice(0, coilsPerGroup);
                     row = row.slice(coilsPerGroup);
                 }
-                ui.response(line);
+                ee.emit('response', line);
             } else
-                ui.response(' ' + line + row.join(' '));
+                ee.emit('response', line + row.join(' '));
             offset += valuesPerLine;
         }
     }
 
-    function modbusRead(fn, ui, cb, addr, n)
+    function modbusRead(fn, cb, addr, n)
     {
         try {
             fn(conn.slaveAddr, addr, n, (err, data) => {
                 if (err)
-                    ui.error(err.message);
+                    ee.emit('error', err.message);
                 else
-                    printMemoryBlock(ui, data.data.slice(0, n), addr);
+                    printMemoryBlock(data.data.slice(0, n), addr);
                 cb(null);
             });
         } catch (err) {
             /* it does not use cb to pass error :( */
-            ui.error(err);
+            ee.emit('error', err);
             cb(null);
         }
     }
 
-    function modbusWrite(fn, ui, cb, addr, value)
+    function modbusWrite(fn, cb, addr, value)
     {
         try {
             fn(conn.slaveAddr, addr, value, (err) => {
                 if (err)
-                    ui.error(err.message);
+                    ee.emit('error', err.message);
                 cb(null);
             });
         } catch (err) {
             /* it does not use cb to pass error :( */
-            ui.error(err);
+            ee.emit('error', err);
             cb(null);
         }
     }
@@ -276,13 +276,13 @@ function commJob(conn)
     {
         const handler = commandVector[job.cmd];
         if (! handler) {
-            job.ui.error('unrecognized command ' + job.cmd);
+            ee.emit('error', 'unrecognized command ' + job.cmd);
             return cb(null);
         }
         if (job.args)
-            handler(job.ui, cb, ...job.args);
+            handler(cb, ...job.args);
         else
-            handler(job.ui, cb);
+            handler(cb);
     }
 
     function handleJobQueue()
@@ -291,24 +291,37 @@ function commJob(conn)
         const head = jobQueue[0];
         handleJob(head, (err, stop) => {
             if (err) {
-                head.ui.error(err.message);
-                conn.close();
-                process.exit(2);
+                head.ee.emit('error', err.message);
+                ee.emit('end', err);
             } else {
                 jobQueue.shift();
                 stopped = stop;
                 if (! stop) {
-                    head.ui.prompt();
+                    restartTimer();
+                    ee.emit('after-job');
                     handleJobQueue();
-                }
+                } else
+                    ee.emit('end', null);
             }
         });
     }
 
+    function restartTimer()
+    {
+        if (queueTimer) {
+            clearTimeout(queueTimer);
+            queueTimer = null;
+        }
+        queueTimer = setTimeout(() => {
+            ee.emit('queue-empty');
+        }, 500);
+    }
+
     return extend(ee, {
-        pushCmd: function(ui, cmd, args) {
+        pushCmd: function(cmd, args) {
             if (stopped) return;
-            jobQueue.push({ui, cmd, args});
+            restartTimer();
+            jobQueue.push({cmd, args});
             if (jobQueue.length == 1) handleJobQueue();
         },
     });
