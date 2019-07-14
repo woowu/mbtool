@@ -3,23 +3,32 @@
     <head>
         <meta http-equiv="Content-Type" const="text/html;charset=UTF-8" />
         <link href="http://fonts.googleapis.com/css?family=Comfortaa" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Roboto+Mono&display=swap" rel="stylesheet">
         <link rel="stylesheet" type="text/css" href="style.css" >
         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js"></script>
         <title>ModBus Commander</title>
     </head>
 
     <body>
-        <header>
-            <h1>ModBus Commander</h1>
-        </header>
+        <div id="root">
+            <div id="left">
+                <div id="title">
+                    <h1>ModBus Commander</h1>
+                </div>
 
-        <section id="logwin"> 
-        </section>
+                <div id="logwin"> 
+                </div>
 
-        <section id="inputZone"> 
-            <input id="command" class="vertical-align" type="text" />
-            <button id="sendBtn" class="vertical-align" type="button">Send</button>
-        </section>
+                <div id="console"> 
+                    <div class="consoleElement">
+                        <input id="command" type="text" spellcheck="false"/>
+                    </div>
+                    <div class="consoleElement">
+                        <div id="output"> </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <script src="http://code.jquery.com/jquery-latest.min.js"></script>
         <script src="main.js"></script>

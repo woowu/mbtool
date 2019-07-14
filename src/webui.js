@@ -31,12 +31,21 @@ function webui(jobQueue)
                 socket.emit('log', log);
             });
             socket.on('command', cmd => {
-                /* TODO */
-                ;
+                var command = cmd.command;
+                command = command.replace(/#.*$/, '').trim();
+                if (! command.length) return;
+                const tokens = command.split(/\s+/);
+                const c = tokens[0];
+                const args = tokens.slice(1);
+                ee.emit('command', c, args);
             });
             socket.on('end', () => {
                 socket.disconnect(0);
             });
+        });
+
+        jobQueue.on('response', data => {
+            io.sockets.emit('response', data);
         });
     }
 

@@ -226,7 +226,7 @@ function commJob(conn)
             var row = data.slice(0, valuesPerLine);
             var line = '';
             data = data.slice(valuesPerLine);
-            line += pad(hexCharsOfWord, offset.toString(base), '0') + ':';
+            line += pad(hexCharsOfWord, offset.toString(base), '0') + ': ';
             if (isCoil) {
                 row = row.join('');
                 while (row.length) {

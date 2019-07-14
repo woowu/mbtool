@@ -140,7 +140,6 @@ makeConnection((err, conn, connStr) => {
     rtu = conn;
     console.log('connected to ' + connStr);
 
-    web = webui(jobQueue);
     jobQueue = commjob(rtu);
     jobQueue.on('end', (err) => {
         if (err) console.error(err);
@@ -151,6 +150,12 @@ makeConnection((err, conn, connStr) => {
             process.exit(0);
         }, 1);
     });
+
+    web = webui(jobQueue);
+    web.on('command', (cmd, args) => {
+        jobQueue.pushCmd(cmd, args);
+    });
+
     local = localui({noAutoStart: true}, jobQueue);
     local.on('command', (cmd, args) => {
         jobQueue.pushCmd(cmd, args);

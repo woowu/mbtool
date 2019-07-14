@@ -1,12 +1,6 @@
-@mixin vertical-align {
-  position: relative;
-  top: 50%;
-  -webkit-transform: translateY(-50%);
-  -ms-transform: translateY(-50%);
-  transform: translateY(-50%);
-}
-
 * {
+    padding: 0px;
+    margin: 0px;
     box-sizing: border-box;
 }
 
@@ -17,68 +11,99 @@ html {
 body {
     margin: 0px;
     height: 100%;
+    /*background-color: #993835;*/
+    background-color: #cdcdcd;
 }
 
-header {
+#left {
+    display: flex;
+    flex-flow: column;
+    max-width: 1200px;
+    min-width: 1000px;
+    margin: 0 auto;
+    min-height: 880px;
+    height: 100%;
+}
+
+#title {
+    /*color: #803831;*/
     text-align: center;
 }
 
 h1 {
     font-family: 'Comfortaa', sans-serif;
+    margin-top: 30px;
+    margin-bottom: 10px;
+}
+
+#logwin {
+    flex: 1;
+    display: grid;
+    margin: 5px 10px;
+    border: #aaaaaa solid 1px;
+    grid-template-columns: 230px auto;
+    align-items: start;
+    overflow-y: scroll;
+    min-height: 350px;
+    max-height: 660px;
+    color: #00d051;
+    background-color: #000000;
+}
+
+#console {
+    display: grid;
+    margin: 5px 10px;
+    padding: 10px 40px 10px 40px;
+    border: #aaaaaa solid 1px;
+    grid-template-columns: 260px auto;
+    align-items: start;
+    grid-column-gap: 30px;
+    background-color: #005217;
+}
+
+.logitem {
     margin: 0px;
+    width: 100%;
+    font-size: 12px;
+    font-family: 'Roboto Mono', monospace;
+    padding: 0px;
+    vertical-align: top;
 }
 
-section#inputZone {
-    border: 5px outset #8258FA;
+.even-line {
+    /*background-color: #ffffff;*/
 }
 
-section#logwin {
-    border: 5px inset #8258FA;
-    height: 85%;
-    overflow: auto;
+.odd-line {
+    /*background-color: #efefef;*/
 }
 
-section#inputZone {
-    height: 7%;
-    text-align: center;
-    background-color: #BCA9F5;
-}
-
-.vertical-align {
-    position: relative;
-    top: 50%;
-    -webkit-transform: translateY(-50%);
-    -ms-transform: translateY(-50%);
-    transform: translateY(-50%);
+.cosoleElement {
+    margin: 0px;
+    width: 100%;
+    font-size: 18px;
+    font-family: 'Roboto Mono', monospace;
+    padding: 0px;
+    border: 2px dashed rgba(114, 186, 94, 0.35);
+    vertical-align: bottom;
 }
 
 input#command {
-    display: inline-block;
-    width: 88%;
-    height: 70%;
-    font-family: 'Comfortaa', sans-serif;
-    font-size: 2vh;
-}
-
-button#sendBtn {
-    display: inline-block;
-    height: 70%;
-    width: 10%;
-}
-
-p.logline {
-    margin: 0px;
     width: 100%;
-    height: 40px;
-    font-size: 2vh;
-    font-family: 'Comfortaa', sans-serif;
-    padding: 1vh;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 16px;
+    color: #00d051;
+    background-color: #000000;
 }
 
-.logline:nth-child(even) {
-    background-color: #81DAF5;
+#output {
+    color: #c2ff89;
+    width: 100%;
+    height: 100%;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 14px;
+    overflow-y: scroll;
+    min-height: 150px;
 }
 
-.logline:nth-child(odd) {
-    background-color: #81BEF7;
-}
+
