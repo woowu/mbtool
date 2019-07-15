@@ -5,7 +5,8 @@
   "main": "src/mbc.js",
   "bin": "bin/mbc",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "./src/mbc.js"
   },
   "keywords": [],
   "author": "",

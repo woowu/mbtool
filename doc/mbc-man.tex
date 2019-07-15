@@ -1,0 +1,143 @@
+\documentclass[a4paper,latin]{paper} 
+\usepackage{babel}  
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{lipsum}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{listings}
+
+\sectionfont{\large\sf\bfseries\color{black!70!blue}} 
+\renewcommand\keywordname{Clavem verborum}
+\title{ModBus Commander}
+\subtitle{User Manual\\
+\hfill\includegraphics[height=2cm]{honeywell-logo}
+\vspace{-2cm}}
+\author{Woody Wu} 
+\institution{Honeywell HPS}
+
+\begin{document} 
+\maketitle 
+\hrule 
+\hrule\bigskip
+
+\section{Synopis} 
+\noindent\begin{lstlisting}[language=bash]
+    Example: mbc -u 2
+    Options:
+      --help          Show help                                            [boolean]
+      --version       Show version number                                  [boolean]
+      --server, -s    server IP address                       [default: "localhost"]
+      --port, -p      tcp port number of server                       [default: 502]
+      --dev, -d       name of serial device
+      --baudrate, -b  serial baudrate                                [default: 9600]
+      --unit-id, -u   modbus server address (a.k.a, unit id)              [required]
+      --file, -f      run script from file
+      --gport, -g     tcp port to access web gui                     [default: 3000]
+\end{lstlisting}
+
+\section{Run From Command Line}
+
+\subsection{Connect to TCP}
+\noindent\begin{lstlisting}[language=bash]
+  mbc -u 2 -s 192.168.0.100
+\end{lstlisting}
+By default, it connects to tcp port 502. The port can be changed by '-p'.
+
+\subsection{Connect to RS485}
+\noindent\begin{lstlisting}[language=bash]
+  mbc -u 2 -d /dev/tty/USB0 -b 9600
+\end{lstlisting}
+
+\subsection{Examples Of Commands}
+After the program started, it print a prompt. You can intput ModBus command to execute.
+The following are some examples.
+
+\subsubsection{Read holding registers}
+\noindent\begin{lstlisting}[language=bash]
+    fc3 0 100
+\end{lstlisting}
+This read 100 holding registers starting from address 0. The out put is like below:
+\noindent\begin{lstlisting}[language=bash]
+    0000: 6f53 5be8 18c7 2a15 6835 9415 ead8 32b9 0117 a660 c39f e30f c964 57be ac8b 8a89
+    0010: 4245 cd57 6fb8 ea7b af1d 6faa 9de9 5cec 5258 510b 734d 2265 5122 c6ec 7965 6ef5
+    0020: 9fd0 b05d 3abd 20bf 171c 819f b312 29e4 5350 5e97 571b b04a 8e36 f006 ddd2 8f7d
+    0030: 2957 f67a f0d4 11bb 8208 a6e8 6e77 2015 f9ea a7d5 556d 3f9e 69a1 a41c ad75 0832
+    0040: 055f 592b ecb4 f84b b07e 0d63 7b2c 2871 ad49 a440 495f 074d eec9 f250 29e1 ae0e
+    0050: 876e 3f5d a750 b2a1 9059 73ef a4b9 324c c140 bdc8 a198 100f acdb 5c04 a6fd 6f64
+    0060: 8448 8b81 12cf 1e00
+\end{lstlisting}
+
+\subsubsection{Write holding registers}
+\noindent\begin{lstlisting}[language=bash]
+    fc6 102 0x1234
+\end{lstlisting}
+This write value 0x1234 to holding register 102.
+
+\subsubsection{Read coils}
+\noindent\begin{lstlisting}[language=bash]
+    fc1 16 32
+\end{lstlisting}
+This read 32 coils values starting from address 16. The output is,
+\noindent\begin{lstlisting}[language=bash]
+0000:           11110110 00010111 11011010 11100011
+\end{lstlisting}
+
+\subsection{Commands list}
+Below lists all the commands:
+
+\noindent\begin{tabular}{ll}
+    fc1 & $\langle$start addr$\rangle$ $\langle$quantity of coils$\rangle$ \\
+    fc2 & $\langle$start addr$\rangle$ $\langle$quatity of discrete inputs$\rangle$ \\
+    fc3 & $\langle$start addr$\rangle$ $\langle$quantity of holding registers$\rangle$ \\
+    fc4 & $\langle$start addr$\rangle$ $\langle$quantity of input registers$\rangle$ \\
+    fc5 & $\langle$addr$\rangle$ $\langle$coil-value$\rangle$ \\
+    fc6 & $\langle$addr$\rangle$ $\langle$holding-register-value$\rangle$ \\
+    fc15 & $\langle$addr$\rangle$ $\langle$coil-value ...$\rangle$ \\
+    fc16 & $\langle$addr$\rangle$ $\langle$holding-register-value ...$\rangle$ \\
+    echo & string \\
+    delay & msecs \\
+\end{tabular}
+
+\section{Run From WEB GUI}
+You can also use its WEB GUI by opening http://localhost:3000.  It uses the same commands
+set with the command line mode as described.  In WEB GUI mode, you can also watch program's
+trace information.
+
+The WEB GUI only tested in Google Chrome.
+
+\includegraphics[width=\textwidth]{webgui.png}
+
+\section{Command History}
+In either command line mode or WEB GUI mode, all exected commands are saved and 
+can be always brought back to execte again by pressing Up key on the keyboard.
+
+\section{Scripting}
+With the '-f' option in the command mode, the program can load a command file
+and executes all the commands defined in the file one by one. Some special commands
+such as \texttt{echo} and \texttt{delay} could be useful when put in a command
+file.
+
+\section{Installation}
+
+You firstly need to install nodejs from \url{http://nodejs.org}, the current LTS version
+is 10.16.0.
+
+Then you can unarchive the distributed archive file to any folder and run the below
+command inside the directory to get all the dependencies installed:
+\noindent\begin{lstlisting}[language=bash]
+  $ npm install
+\end{lstlisting}
+
+Now you can start the program inside the directory. On Linux:
+\noindent\begin{lstlisting}[language=bash]
+  $ ./bin/mbc [OPTIONS]
+\end{lstlisting}
+
+And on Windows:
+\noindent\begin{lstlisting}[language=bash]
+  c:\work\> src/mbc.js [OPTIONS]
+\end{lstlisting}
+
+\end {document}

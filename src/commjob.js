@@ -190,7 +190,7 @@ function commJob(conn)
                 ee.emit('error', parameters.message);
                 cb(null);
             } else
-                modbusWrite(conn.writeFC16.bind(conn), cb, ...parameters);
+                modbusWrite(conn.writeFC15.bind(conn), cb, ...parameters);
         },
         fc16: function(cb, addr, ...values) {
             const parameters = cmdConvertAddrAndRegValues(addr, values);
