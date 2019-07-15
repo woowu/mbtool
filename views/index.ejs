@@ -5,29 +5,36 @@
         <link href="http://fonts.googleapis.com/css?family=Comfortaa" rel="stylesheet" type="text/css">
         <link href="https://fonts.googleapis.com/css?family=Roboto+Mono&display=swap" rel="stylesheet">
         <link rel="stylesheet" type="text/css" href="style.css" >
+        <link rel="shortcut icon" type="image/png" href="/modbusx32.png"/>        
         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js"></script>
         <title>ModBus Commander</title>
     </head>
 
     <body>
         <div id="root">
-            <div id="left">
-                <div id="title">
-                    <h1>ModBus Commander</h1>
-                </div>
-
-                <div id="logwin"> 
-                </div>
-
-                <div id="console"> 
-                    <div class="consoleElement">
+            <div id="content">
+                <div id="left">
+                    <div id="title">
+                        <h1>ModBus Commander</h1>
+                    </div>
+                    <div class="commandbox">
                         <input id="command" type="text" spellcheck="false"/>
                     </div>
-                    <div class="consoleElement">
-                        <div id="output"> </div>
+                    <div class="responsebox">
+                        <div id="response"> </div>
+                    </div>
+                    <div id="logobox">
+                        <img id="logo" src="honeywell-logo.svg" width=200px>
                     </div>
                 </div>
-            </div>
+                <div id="right">
+                    <div id="title">
+                        <h1>&nbsp;</h1>
+                    </div>
+                    <div id="logwin"> 
+                    </div>
+                </div>
+            <div id="content">
         </div>
 
         <script src="http://code.jquery.com/jquery-latest.min.js"></script>

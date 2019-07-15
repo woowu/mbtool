@@ -5,28 +5,30 @@
 }
 
 html {
-    height: 100%;
 }
 
 body {
-    margin: 0px;
-    height: 100%;
-    /*background-color: #993835;*/
+    /*
     background-color: #cdcdcd;
+    */
+}
+
+#content {
+    display: flex;
 }
 
 #left {
     display: flex;
     flex-flow: column;
-    max-width: 1200px;
-    min-width: 1000px;
-    margin: 0 auto;
-    min-height: 880px;
-    height: 100%;
+    margin: 0px 20px 0px 20px;
+}
+
+#right {
+    display: flex;
+    flex-flow: column;
 }
 
 #title {
-    /*color: #803831;*/
     text-align: center;
 }
 
@@ -34,6 +36,45 @@ h1 {
     font-family: 'Comfortaa', sans-serif;
     margin-top: 30px;
     margin-bottom: 10px;
+}
+
+.commandbox {
+}
+
+.responsebox {
+}
+
+#logobox {
+    margin-top: auto;
+    margin-bottom: 10px;
+}
+
+#logo {
+    padding: 30px 0px 0px 50px;
+}
+
+input#command {
+    width: 100%;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 16px;
+    color: #00d051;
+    background-color: #300a24;
+    margin-top: 5px;
+}
+
+#response {
+    color: #0c9d73;
+    /*
+    color: #c2ff89;
+    */
+    font-family: 'Roboto Mono', monospace;
+    font-size: 14px;
+    overflow-y: scroll;
+    min-height: 300px;
+    max-height: 600px;
+    min-width: 750px;
+    margin-top: 20px;
+    border: #aaaaaa solid 1px;
 }
 
 #logwin {
@@ -44,10 +85,13 @@ h1 {
     grid-template-columns: 230px auto;
     align-items: start;
     overflow-y: scroll;
+    min-width: 800px;
     min-height: 350px;
-    max-height: 660px;
+    max-height: 800px;
+    /*
     color: #00d051;
     background-color: #000000;
+    */
 }
 
 #console {
@@ -58,52 +102,24 @@ h1 {
     grid-template-columns: 260px auto;
     align-items: start;
     grid-column-gap: 30px;
-    background-color: #005217;
 }
 
 .logitem {
-    margin: 0px;
+    margin: 0px 2px 0px 2px;
     width: 100%;
     font-size: 12px;
     font-family: 'Roboto Mono', monospace;
-    padding: 0px;
     vertical-align: top;
 }
 
 .even-line {
-    /*background-color: #ffffff;*/
+    background-color: #ffffff;
 }
 
 .odd-line {
-    /*background-color: #efefef;*/
+    background-color: #efefef;
 }
 
-.cosoleElement {
-    margin: 0px;
-    width: 100%;
-    font-size: 18px;
-    font-family: 'Roboto Mono', monospace;
-    padding: 0px;
-    border: 2px dashed rgba(114, 186, 94, 0.35);
-    vertical-align: bottom;
+.responseline {
+    margin: 0px 5px 0px 5px;
 }
-
-input#command {
-    width: 100%;
-    font-family: 'Roboto Mono', monospace;
-    font-size: 16px;
-    color: #00d051;
-    background-color: #000000;
-}
-
-#output {
-    color: #c2ff89;
-    width: 100%;
-    height: 100%;
-    font-family: 'Roboto Mono', monospace;
-    font-size: 14px;
-    overflow-y: scroll;
-    min-height: 150px;
-}
-
-

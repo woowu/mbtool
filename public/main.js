@@ -1,12 +1,16 @@
 const respseGapMinMSecs = 2000;
 
+const clearResp = false;
+
 $(function() {
     var socket = io.connect('http://localhost:3000');
 
     var command = $('#command');
     var sendBtn = $('#sendBtn');
     var logwin = $('#logwin');
-    var output = $('#output');
+    var respWin = $('#response');
+    var history = [];
+    var histCurr = 1;
 
     var nLogLines = 0;
     var lastRespTime = new Date();
@@ -16,11 +20,19 @@ $(function() {
     });
 
     command.on('keydown', (e) => {
-        if (e.key == 'Enter') {
-            socket.emit('command', {command : command.val()});
+        if (e.key == 'ArrowUp' && histCurr - 1 >= 0
+            && histCurr - 1 < history.length) {
+            --histCurr;
+            command.val(history[histCurr]);
+        } else if (e.key == 'Enter') {
+            const line = command.val().trim();
             command.val('');
-            output.html('');
-        }
+            if (clearResp) respWin.html('');
+            history.push(line);
+            histCurr = history.length;
+            socket.emit('command', {command : line});
+        } else
+            histCurr = history.length;
     });
 
     socket.on('log', log => {
@@ -35,15 +47,21 @@ $(function() {
     });
     socket.on('response', resp => {
         const t = new Date();
-        if (t - lastRespTime > respseGapMinMSecs)
-            output.html('');
+        if (clearResp && t - lastRespTime > respseGapMinMSecs)
+            respWin.html('');
         lastRespTime = t;
 
         resp = resp.replace(/\s/g, '&nbsp;');
-        console.log(resp);
         resp.split('\n').forEach(line => {
-            output.append('<div class="outputLine"> <p>' + line + '</p> </dvi>');
-            output.scrollTop(9999);
+            respWin.append('<div class="responseline"> <p>' + line + '</p> </dvi>');
+            respWin.scrollTop(9999);
         });
     });
+
+    for (var i = 0; i < 500; ++i)
+        logwin.append('<div class="logitem">'
+            + '&nbsp;' + '</div>'
+            + '<div>' + '&nbsp;' 
+            + '</div>');
+    logwin.scrollTop(9999);
 });
