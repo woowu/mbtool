@@ -131,6 +131,12 @@ var argv = require('yargs')
         nargs: 1,
         alias: 'f',
     })
+    .option('gport', {
+        describe: 'tcp port to access web gui',
+        nargs: 1,
+        default: 3000,
+        alias: 'g',
+    })
     .argv;
 
 makeConnection((err, conn, connStr) => {
@@ -151,7 +157,7 @@ makeConnection((err, conn, connStr) => {
         }, 1);
     });
 
-    web = webui(jobQueue);
+    web = webui(jobQueue, argv.gport);
     web.on('command', (cmd, args) => {
         jobQueue.pushCmd(cmd, args);
     });
@@ -161,6 +167,7 @@ makeConnection((err, conn, connStr) => {
         jobQueue.pushCmd(cmd, args);
     });
 
+    console.log('open gui at http://localhost:' + argv.gport);
     if (argv.f)
         processCommandsFile(argv.f, () => {
             local.start();

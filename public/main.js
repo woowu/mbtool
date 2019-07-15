@@ -3,7 +3,7 @@ const respseGapMinMSecs = 2000;
 const clearResp = false;
 
 $(function() {
-    var socket = io.connect('http://localhost:3000');
+    var socket = io();
 
     var command = $('#command');
     var sendBtn = $('#sendBtn');

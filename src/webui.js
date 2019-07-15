@@ -7,7 +7,7 @@ require('ejs');
 
 const logHistSize = 10000;
 
-function webui(jobQueue)
+function webui(jobQueue, port)
 {
     const ee = new events.EventEmitter();
     var app = express();
@@ -24,7 +24,7 @@ function webui(jobQueue)
             res.render('index');
         });
 
-        server = app.listen(3000);
+        server = app.listen(port);
         io = socketio(server);
         io.on('connection', socket => {
             logHist.forEach(log => {
