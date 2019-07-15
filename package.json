@@ -2,7 +2,8 @@
   "name": "mbtool",
   "version": "0.0.1",
   "description": "",
-  "main": "index.js",
+  "main": "src/mbc.js",
+  "bin": "bin/mbc",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -10,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "debug": "^4.1.1",
     "ejs": "^2.6.2",
     "express": "^4.17.1",
     "extend": "^3.0.2",
