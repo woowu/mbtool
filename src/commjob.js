@@ -285,6 +285,10 @@ function commJob(conn)
 
     function printFloatFromRegisterValues(regValues, format)
     {
+        var tmp = [];
+        while (regValues.length) tmp.push(regValues.pop());
+        regValues = tmp;
+
         const bytesPerNum = format == 'single' ? 2 : 4;
         var line = '';
 
