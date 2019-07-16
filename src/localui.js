@@ -24,7 +24,10 @@ function localui(options, jobQueue)
         });
         rl.on('line', line => {
             line = line.replace(/#.*$/, '').trim();
-            if (! line.length) return;
+            if (! line.length) {
+                rl.prompt();
+                return;
+            }
             const tokens = line.split(/\s+/);
             const cmd = tokens[0];
             const args = tokens.slice(1);
