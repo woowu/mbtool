@@ -249,6 +249,34 @@ function commJob(conn)
                     cb(null);
                 }, ...parameters);
         },
+        fc16sf: function(cb, addr, value) {
+            var buf = Buffer.alloc(4);
+            ieee754.write(buf, value, 0, false, 23, 4);
+            const parameters = cmdConvertAddrAndRegValues(addr, [
+                buf[0] * 256 + buf[1],
+                buf[2] * 256 + buf[3],
+            ]);
+            if (parameters instanceof Error) {
+                ee.emit('error', parameters.message);
+                cb(null);
+            } else
+                modbusWrite(conn.writeFC16.bind(conn), cb, ...parameters);
+        },
+        fc16df: function(cb, addr, value) {
+            var buf = Buffer.alloc(8);
+            ieee754.write(buf, value, 0, false, 52, 8);
+            const parameters = cmdConvertAddrAndRegValues(addr, [
+                buf[0] * 256 + buf[1],
+                buf[2] * 256 + buf[3],
+                buf[4] * 256 + buf[5],
+                buf[6] * 256 + buf[7],
+            ]);
+            if (parameters instanceof Error) {
+                ee.emit('error', parameters.message);
+                cb(null);
+            } else
+                modbusWrite(conn.writeFC16.bind(conn), cb, ...parameters);
+        },
     };
 
     function printFloatFromRegisterValues(regValues, format)
