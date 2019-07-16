@@ -2,6 +2,7 @@
 const events = require('events');
 const extend = require('extend');
 const pad = require('pad');
+const ieee754 = require('ieee754');
 
 function cmdConvertAddr(addr)
 {
@@ -200,7 +201,74 @@ function commJob(conn)
             } else
                 modbusWrite(conn.writeFC16.bind(conn), cb, ...parameters);
         },
+
+        /* wrapper functions */
+
+        /* read single precision floats from holding registers */
+        fc3sf: function(cb, addr, n) {
+            const parameters = cmdConvertAddrAndCount(addr * 2, n * 2);
+            if (parameters instanceof Error) {
+                ee.emit('error', parameters.message);
+                cb(null);
+            } else
+                modbusRead2(conn.writeFC3.bind(conn), data => {
+                    printFloatFromRegisterValues(data.data, 'single');
+                    cb(null);
+                }, ...parameters);
+        },
+        fc3df: function(cb, addr, n) {
+            const parameters = cmdConvertAddrAndCount(addr * 4, n * 4);
+            if (parameters instanceof Error) {
+                ee.emit('error', parameters.message);
+                cb(null);
+            } else
+                modbusRead2(conn.writeFC3.bind(conn), data => {
+                    printFloatFromRegisterValues(data.data, 'double');
+                    cb(null);
+                }, ...parameters);
+        },
+        fc4sf: function(cb, addr, n) {
+            const parameters = cmdConvertAddrAndCount(addr * 2, n * 2);
+            if (parameters instanceof Error) {
+                ee.emit('error', parameters.message);
+                cb(null);
+            } else
+                modbusRead2(conn.writeFC4.bind(conn), data => {
+                    printFloatFromRegisterValues(data.data, 'single');
+                    cb(null);
+                }, ...parameters);
+        },
+        fc4df: function(cb, addr, n) {
+            const parameters = cmdConvertAddrAndCount(addr * 4, n * 4);
+            if (parameters instanceof Error) {
+                ee.emit('error', parameters.message);
+                cb(null);
+            } else
+                modbusRead2(conn.writeFC4.bind(conn), data => {
+                    printFloatFromRegisterValues(data.data, 'double');
+                    cb(null);
+                }, ...parameters);
+        },
     };
+
+    function printFloatFromRegisterValues(regValues, format)
+    {
+        const bytesPerNum = format == 'single' ? 2 : 4;
+        var line = '';
+
+        for (var i = 0; i < regValues.length; i += bytesPerNum) {
+            var bytes = [];
+            for (var j = 0; j < bytesPerNum; ++j) {
+                bytes.push(parseInt(regValues[j] / 256));
+                bytes.push(regValues[i] % 256);
+            }
+            if (format == 'single')
+                line += ieee754.read(bytes, 0, false, 23, 4).toString() + ' ';
+            else
+                line += ieee754.read(bytes, 0, false, 52, 8).toString() + ' ';
+        }
+        ee.emit('response', line.trim());
+    }
 
     function printMemoryBlock(data, startAddr)
     {
@@ -254,6 +322,23 @@ function commJob(conn)
             /* it does not use cb to pass error :( */
             ee.emit('error', err);
             cb(null);
+        }
+    }
+
+    function modbusRead2(fn, cb, addr, n)
+    {
+        try {
+            fn(conn.slaveAddr, addr, n, (err, data) => {
+                if (err) {
+                    ee.emit('error', err.message);
+                    cb(new Error('read failed'));
+                } else
+                    cb(data);
+            });
+        } catch (err) {
+            /* it does not use cb to pass error :( */
+            ee.emit('error', err);
+            cb(new Error('read failed'));
         }
     }
 
