@@ -206,45 +206,49 @@ function commJob(conn)
 
         /* read single precision floats from holding registers */
         fc3sf: function(cb, addr, n) {
-            const parameters = cmdConvertAddrAndCount(addr * 2, n * 2);
+            const parameters = cmdConvertAddrAndCount(addr, n * 2);
             if (parameters instanceof Error) {
                 ee.emit('error', parameters.message);
                 cb(null);
             } else
-                modbusRead2(conn.writeFC3.bind(conn), data => {
+                modbusRead2(conn.writeFC3.bind(conn), (err, data) => {
+                    if (err) ee.emit('error', err.message);
                     printFloatFromRegisterValues(data.data, 'single');
                     cb(null);
                 }, ...parameters);
         },
         fc3df: function(cb, addr, n) {
-            const parameters = cmdConvertAddrAndCount(addr * 4, n * 4);
+            const parameters = cmdConvertAddrAndCount(addr, n * 4);
             if (parameters instanceof Error) {
                 ee.emit('error', parameters.message);
                 cb(null);
             } else
-                modbusRead2(conn.writeFC3.bind(conn), data => {
+                modbusRead2(conn.writeFC3.bind(conn), (err, data) => {
+                    if (err) ee.emit('error', err.message);
                     printFloatFromRegisterValues(data.data, 'double');
                     cb(null);
                 }, ...parameters);
         },
         fc4sf: function(cb, addr, n) {
-            const parameters = cmdConvertAddrAndCount(addr * 2, n * 2);
+            const parameters = cmdConvertAddrAndCount(addr, n * 2);
             if (parameters instanceof Error) {
                 ee.emit('error', parameters.message);
                 cb(null);
             } else
-                modbusRead2(conn.writeFC4.bind(conn), data => {
+                modbusRead2(conn.writeFC4.bind(conn), (err, data) => {
+                    if (err) ee.emit('error', err.message);
                     printFloatFromRegisterValues(data.data, 'single');
                     cb(null);
                 }, ...parameters);
         },
         fc4df: function(cb, addr, n) {
-            const parameters = cmdConvertAddrAndCount(addr * 4, n * 4);
+            const parameters = cmdConvertAddrAndCount(addr, n * 4);
             if (parameters instanceof Error) {
                 ee.emit('error', parameters.message);
                 cb(null);
             } else
-                modbusRead2(conn.writeFC4.bind(conn), data => {
+                modbusRead2(conn.writeFC4.bind(conn), (err, data) => {
+                    if (err) ee.emit('error', err.message);
                     printFloatFromRegisterValues(data.data, 'double');
                     cb(null);
                 }, ...parameters);
@@ -361,7 +365,7 @@ function commJob(conn)
                     ee.emit('error', err.message);
                     cb(new Error('read failed'));
                 } else
-                    cb(data);
+                    cb(null, data);
             });
         } catch (err) {
             /* it does not use cb to pass error :( */
