@@ -257,8 +257,8 @@ function commJob(conn)
             var buf = Buffer.alloc(4);
             ieee754.write(buf, value, 0, false, 23, 4);
             const parameters = cmdConvertAddrAndRegValues(addr, [
-                buf[0] * 256 + buf[1],
                 buf[2] * 256 + buf[3],
+                buf[0] * 256 + buf[1],
             ]);
             if (parameters instanceof Error) {
                 ee.emit('error', parameters.message);
@@ -270,10 +270,10 @@ function commJob(conn)
             var buf = Buffer.alloc(8);
             ieee754.write(buf, value, 0, false, 52, 8);
             const parameters = cmdConvertAddrAndRegValues(addr, [
-                buf[0] * 256 + buf[1],
-                buf[2] * 256 + buf[3],
-                buf[4] * 256 + buf[5],
                 buf[6] * 256 + buf[7],
+                buf[4] * 256 + buf[5],
+                buf[2] * 256 + buf[3],
+                buf[0] * 256 + buf[1],
             ]);
             if (parameters instanceof Error) {
                 ee.emit('error', parameters.message);
@@ -285,18 +285,22 @@ function commJob(conn)
 
     function printFloatFromRegisterValues(regValues, format)
     {
-        var tmp = [];
-        while (regValues.length) tmp.push(regValues.pop());
-        regValues = tmp;
-
-        const bytesPerNum = format == 'single' ? 2 : 4;
+        const bytesPerNum = format == 'single' ? 4 : 8;
+        const regsPerNum = format == 'single' ? 2 : 4;
         var line = '';
 
-        for (var i = 0; i < regValues.length; i += bytesPerNum) {
+        var swap = [];
+        for (var i = 0; i < regValues.length; i += regsPerNum) {
+            var group = regValues.slice(i, i + regsPerNum);
+            while (group.length) swap.push(group.pop());
+        }
+        regValues = swap;
+
+        for (var i = 0; i < regValues.length; i += regsPerNum) {
             var bytes = [];
-            for (var j = 0; j < bytesPerNum; ++j) {
+            for (var j = i; j < bytesPerNum; ++j) {
                 bytes.push(parseInt(regValues[j] / 256));
-                bytes.push(regValues[i] % 256);
+                bytes.push(regValues[j] % 256);
             }
             if (format == 'single')
                 line += ieee754.read(bytes, 0, false, 23, 4).toString() + ' ';
