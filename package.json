@@ -5,7 +5,7 @@
   "main": "src/mbc.js",
   "bin": "bin/mbc",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "mocha",
     "start": "./src/mbc.js"
   },
   "keywords": [],
@@ -21,5 +21,8 @@
     "pad": "^3.2.0",
     "socket.io": "^2.2.0",
     "yargs": "^13.2.4"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0"
   }
 }

@@ -2,7 +2,7 @@
 const events = require('events');
 const extend = require('extend');
 const pad = require('pad');
-const ieee754 = require('ieee754');
+const reg2ieee = require('./regfmt').reg2ieee;
 
 function cmdConvertAddr(addr)
 {
@@ -205,75 +205,40 @@ function commJob(conn)
         /* wrapper functions */
 
         /* read single precision floats from holding registers */
-        fc3sf: function(cb, addr, n) {
+        fc3b: function(cb, addr, n) {
             const parameters = cmdConvertAddrAndCount(addr, n * 2);
             if (parameters instanceof Error) {
                 ee.emit('error', parameters.message);
                 cb(null);
             } else
                 modbusRead2(conn.writeFC3.bind(conn), (err, data) => {
-                    if (err) ee.emit('error', err.message);
-                    printFloatFromRegisterValues(data.data, 'single');
+                    if (err)
+                        ee.emit('error', err.message);
+                    else
+                        emitValueArray(ee, reg2ieee(data.data, 'fb'));
                     cb(null);
                 }, ...parameters);
         },
-        fc3df: function(cb, addr, n) {
-            const parameters = cmdConvertAddrAndCount(addr, n * 4);
-            if (parameters instanceof Error) {
-                ee.emit('error', parameters.message);
-                cb(null);
-            } else
-                modbusRead2(conn.writeFC3.bind(conn), (err, data) => {
-                    if (err) ee.emit('error', err.message);
-                    printFloatFromRegisterValues(data.data, 'double');
-                    cb(null);
-                }, ...parameters);
-        },
-        fc4sf: function(cb, addr, n) {
+        fc4b: function(cb, addr, n) {
             const parameters = cmdConvertAddrAndCount(addr, n * 2);
             if (parameters instanceof Error) {
                 ee.emit('error', parameters.message);
                 cb(null);
             } else
                 modbusRead2(conn.writeFC4.bind(conn), (err, data) => {
-                    if (err) ee.emit('error', err.message);
-                    printFloatFromRegisterValues(data.data, 'single');
+                    if (err)
+                        ee.emit('error', err.message);
+                    else
+                        emitValueArray(ee, reg2ieee(data.data, 'fb'));
                     cb(null);
                 }, ...parameters);
         },
-        fc4df: function(cb, addr, n) {
-            const parameters = cmdConvertAddrAndCount(addr, n * 4);
-            if (parameters instanceof Error) {
-                ee.emit('error', parameters.message);
-                cb(null);
-            } else
-                modbusRead2(conn.writeFC4.bind(conn), (err, data) => {
-                    if (err) ee.emit('error', err.message);
-                    printFloatFromRegisterValues(data.data, 'double');
-                    cb(null);
-                }, ...parameters);
-        },
-        fc16sf: function(cb, addr, value) {
+        fc16b: function(cb, addr, value) {
             var buf = Buffer.alloc(4);
             ieee754.write(buf, value, 0, false, 23, 4);
             const parameters = cmdConvertAddrAndRegValues(addr, [
-                buf[2] * 256 + buf[3],
-                buf[0] * 256 + buf[1],
-            ]);
-            if (parameters instanceof Error) {
-                ee.emit('error', parameters.message);
-                cb(null);
-            } else
-                modbusWrite(conn.writeFC16.bind(conn), cb, ...parameters);
-        },
-        fc16df: function(cb, addr, value) {
-            var buf = Buffer.alloc(8);
-            ieee754.write(buf, value, 0, false, 52, 8);
-            const parameters = cmdConvertAddrAndRegValues(addr, [
-                buf[6] * 256 + buf[7],
-                buf[4] * 256 + buf[5],
-                buf[2] * 256 + buf[3],
-                buf[0] * 256 + buf[1],
+                buf[3] * 256 + buf[2],
+                buf[1] * 256 + buf[0],
             ]);
             if (parameters instanceof Error) {
                 ee.emit('error', parameters.message);
@@ -283,31 +248,11 @@ function commJob(conn)
         },
     };
 
-    function printFloatFromRegisterValues(regValues, format)
+    function emitValueArray(ee, values)
     {
-        const bytesPerNum = format == 'single' ? 4 : 8;
-        const regsPerNum = format == 'single' ? 2 : 4;
-        var line = '';
-
-        var swap = [];
-        for (var i = 0; i < regValues.length; i += regsPerNum) {
-            var group = regValues.slice(i, i + regsPerNum);
-            while (group.length) swap.push(group.pop());
-        }
-        regValues = swap;
-
-        for (var i = 0; i < regValues.length; i += regsPerNum) {
-            var bytes = [];
-            for (var j = i; j < bytesPerNum; ++j) {
-                bytes.push(parseInt(regValues[j] / 256));
-                bytes.push(regValues[j] % 256);
-            }
-            if (format == 'single')
-                line += ieee754.read(bytes, 0, false, 23, 4).toString() + ' ';
-            else
-                line += ieee754.read(bytes, 0, false, 52, 8).toString() + ' ';
-        }
-        ee.emit('response', line.trim());
+        ee.emit('response', values.reduce((v, index) => {
+            return index == 0 ? v.toString() : (' ' + v.toString());
+        }));
     }
 
     function printMemoryBlock(data, startAddr)
