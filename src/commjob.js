@@ -2,7 +2,7 @@
 const events = require('events');
 const extend = require('extend');
 const pad = require('pad');
-const reg2ieee = require('./regfmt').reg2ieee;
+const {reg2ieee, ieee2reg} = require('./regfmt');
 
 function cmdConvertAddr(addr)
 {
@@ -204,49 +204,70 @@ function commJob(conn)
 
         /* wrapper functions */
 
-        /* read single precision floats from holding registers */
+        /* read ieee floats from holding registers */
         fc3b: function(cb, addr, n) {
-            const parameters = cmdConvertAddrAndCount(addr, n * 2);
-            if (parameters instanceof Error) {
-                ee.emit('error', parameters.message);
-                cb(null);
-            } else
-                modbusRead2(conn.writeFC3.bind(conn), (err, data) => {
-                    if (err)
-                        ee.emit('error', err.message);
-                    else
-                        emitValueArray(ee, reg2ieee(data.data, 'fb'));
-                    cb(null);
-                }, ...parameters);
+            readFormatedFloats(conn.writeFC3.bind(conn), addr, n, 'b', cb);
+        },
+        fc3bb: function(cb, addr, n) {
+            readFormatedFloats(conn.writeFC3.bind(conn), addr, n, 'bb', cb);
+        },
+        fc3l: function(cb, addr, n) {
+            readFormatedFloats(conn.writeFC3.bind(conn), addr, n, 'l', cb);
+        },
+        fc3lb: function(cb, addr, n) {
+            readFormatedFloats(conn.writeFC3.bind(conn), addr, n, 'lb', cb);
         },
         fc4b: function(cb, addr, n) {
-            const parameters = cmdConvertAddrAndCount(addr, n * 2);
-            if (parameters instanceof Error) {
-                ee.emit('error', parameters.message);
-                cb(null);
-            } else
-                modbusRead2(conn.writeFC4.bind(conn), (err, data) => {
-                    if (err)
-                        ee.emit('error', err.message);
-                    else
-                        emitValueArray(ee, reg2ieee(data.data, 'fb'));
-                    cb(null);
-                }, ...parameters);
+            readFormatedFloats(conn.writeFC4.bind(conn), addr, n, 'b', cb);
+        },
+        fc4bb: function(cb, addr, n) {
+            readFormatedFloats(conn.writeFC4.bind(conn), addr, n, 'bb', cb);
+        },
+        fc4l: function(cb, addr, n) {
+            readFormatedFloats(conn.writeFC4.bind(conn), addr, n, 'l', cb);
+        },
+        fc4lb: function(cb, addr, n) {
+            readFormatedFloats(conn.writeFC4.bind(conn), addr, n, 'lb', cb);
         },
         fc16b: function(cb, addr, value) {
-            var buf = Buffer.alloc(4);
-            ieee754.write(buf, value, 0, false, 23, 4);
-            const parameters = cmdConvertAddrAndRegValues(addr, [
-                buf[3] * 256 + buf[2],
-                buf[1] * 256 + buf[0],
-            ]);
-            if (parameters instanceof Error) {
-                ee.emit('error', parameters.message);
-                cb(null);
-            } else
-                modbusWrite(conn.writeFC16.bind(conn), cb, ...parameters);
+            writeFormatedFloat(conn.writeFC16.bind(conn), addr, value, 'b', cb);
+        },
+        fc16bb: function(cb, addr, value) {
+            writeFormatedFloat(conn.writeFC16.bind(conn), addr, value, 'bb', cb);
+        },
+        fc16l: function(cb, addr, value) {
+            writeFormatedFloat(conn.writeFC16.bind(conn), addr, value, 'l', cb);
+        },
+        fc16lb: function(cb, addr, value) {
+            writeFormatedFloat(conn.writeFC16.bind(conn), addr, value, 'lb', cb);
         },
     };
+
+    function readFormatedFloats(modbusFun, addr, n, fmt, cb)
+    {
+        const parameters = cmdConvertAddrAndCount(addr, n * 2);
+        if (parameters instanceof Error) {
+            ee.emit('error', parameters.message);
+            cb(null);
+        } else
+            modbusRead2(modbusFun, (err, data) => {
+                if (err)
+                    ee.emit('error', err.message);
+                else
+                    emitValueArray(ee, reg2ieee(data.data, fmt));
+                cb(null);
+            }, ...parameters);
+    }
+
+    function writeFormatedFloat(modbusFun, addr, value, fmt, cb)
+    {
+        const parameters = cmdConvertAddrAndRegValues(addr, ieee2reg(value, fmt));
+        if (parameters instanceof Error) {
+            ee.emit('error', parameters.message);
+            cb(null);
+        } else
+            modbusWrite(modbusFun, cb, ...parameters);
+    }
 
     function emitValueArray(ee, values)
     {
