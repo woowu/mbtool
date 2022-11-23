@@ -19,7 +19,7 @@
     "ieee754": "^1.1.13",
     "modbus-serial": "^7.6.0",
     "pad": "^3.2.0",
-    "socket.io": "^2.2.0",
+    "socket.io": "^2.5.0",
     "yargs": "^13.2.4"
   },
   "devDependencies": {
