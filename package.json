@@ -13,7 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "debug": "^4.1.1",
-    "ejs": "^2.6.2",
+    "ejs": "^3.1.10",
     "express": "^4.17.1",
     "extend": "^3.0.2",
     "ieee754": "^1.1.13",
